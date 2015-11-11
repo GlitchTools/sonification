@@ -27,7 +27,7 @@ public class CanyonDelay extends AFilter implements IConfigurable {
   int datasize;
   int pos;
   float accum_l, accum_r;
-
+ArrayList<EffectParam> _defaultparams;
   int ltr_offset, rtl_offset;
   float ltr_invmag, rtl_invmag;
   float filter_invmag, filter_mag;
@@ -39,6 +39,13 @@ public class CanyonDelay extends AFilter implements IConfigurable {
     data_l = new float[datasize];
     data_r = new float[datasize];
     initialize();
+    _defaultparams = new ArrayList<EffectParam>();
+    _defaultparams.add(new EffectParam("ltr time", 0.3, 0.001, 1.0, 0.001));
+    _defaultparams.add(new EffectParam("rtl time", 0.3, 0.001, 1.0, 0.001));
+    _defaultparams.add(new EffectParam("ltr feedback", 0.3, -1, 1, 0.02));
+    _defaultparams.add(new EffectParam("rtl feedback", 0.3, -1, 1, 0.02));
+    _defaultparams.add(new EffectParam("cutoff", 0.3, 0, 10000, 5));
+    
   }
 
   public void initialize() {
@@ -80,7 +87,7 @@ public class CanyonDelay extends AFilter implements IConfigurable {
   }
 
   public ArrayList<EffectParam> getParams() { 
-    return null;
+    return _defaultparams;
   }
 
   public Float[] getConf() {

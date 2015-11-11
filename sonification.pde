@@ -210,7 +210,7 @@ void setup() {
 }
 void draw() { 
   
-   afilter.randomize();
+  // afilter.randomize();
    for(int i=0; i<img.width*img.height*3;i++) {
    isw.write(afilter.read());
    }
@@ -222,6 +222,14 @@ void draw() {
    
    isr.reset();
    isw.reset();
+}
+
+public IConfigurable getFilter() { 
+  try { 
+  return (IConfigurable)afilter;
+  } catch (Exception e) { 
+    return null;
+  }
 }
 
 

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8"/>
+  <title>htglitch, running sonification AE2Z1b8</title>
+  <style>
+   html,body,canvas{margin:0;padding:0;height:100%;width:100%;position:relative;}
+   body{background:black;}
+   .controller { 
+	min-width: 200px;
+	max-width: 250px;
+	min-height: 100px;
+	max-height: 400px;
+	background: silver;
+	float:right;
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	
+  }
+  </style>
+  <script src="processing.js"></script>
+  <script src="controls.js"></script>
+  </head>
+ <body>
+  <canvas id="sketch" data-processing-sources="sonification.pde common.pde colorspaces.pde afilters.pde" width=1600 height=1600></canvas>
+
+  <script>
+var controlbox = {};
+
+function loadEffect(targetElement) { 
+	var proc =Processing.getInstanceById('sketch'); 
+	var afilter = proc.getFilter();
+	var params = afilter.getParams().toArray();
+	var el = controlbox.ctrl = genCtrl(params);
+	targetElement.innerHTML = "";
+	targetElement.appendChild(el);
+}
+
+function applyEffect() { 
+	if ( typeof controlbox.ctrl === 'undefined' ) { return; }
+	var ctrls = controlbox.ctrl.getElementsByTagName('input');
+	var result = [];
+	var proc =Processing.getInstanceById('sketch'); 
+	var afilter = proc.getFilter();
+
+	for ( var i = 0, l = ctrls.length; i<l; i++ ) { 
+		result[result.length]=ctrls[i].value;
+	}
+	afilter.setConf(result);
+}
+function redraw() { 
+	var proc =Processing.getInstanceById('sketch'); 
+	proc.redraw();
+}
+	
+
+
+
+
+function genCtrl(params) { 	
+	var result = document.createElement('div');
+	for ( var i = 0, l = params.length; i<l; i++ ) { 
+		//debugger;
+		var param = params[i];
+		var row = document.createElement('div');
+		row.innerHTML += param.title + "<br/>";
+		var inp = document.createElement('input');
+		inp.setAttribute('type','range');
+		inp.setAttribute('min',param.min);
+		inp.setAttribute('max',param.max);
+		inp.setAttribute('step',param.step);
+		inp.setAttribute('value',param.def);
+		inp.style.display = 'block';
+		row.appendChild(inp);
+		result.appendChild(row);
+	}
+	return result;
+}
+
+  </script>
+   <div class=controller>
+   <input type=button onclick="loadEffect(document.getElementById('toggles'))" value="load"/>
+   <input type=button onclick="applyEffect()" value="apply" />
+   <input type=button onclick="redraw()" value="redraw" />
+	<div id=toggles></div>
+   </div><!--/controller-->
+ </body>
+</html>
