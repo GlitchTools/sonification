@@ -1,3 +1,4 @@
+
 public interface Piper {
   public float read();
 }
@@ -25,6 +26,54 @@ class Pipe implements Piper {
     return v;
   }
 }
+
+
+interface IConfigurable { 
+  ArrayList<EffectParam> getParams();
+  Float[] getConf();
+  void setConf(Float[] conf);
+}
+
+interface Controller {
+  ArrayList<Float> getConf();
+  void setEffect(IConfigurable effect); 
+}
+
+
+public class EffectParam extends HashMap<String,Float[]> { 
+  public String title;
+  public float def;
+  public float min;
+  public float max;
+  public float step;
+  public EffectParam(String title, float def, float min, float max, float step) { 
+    this.title = title;
+    this.def = def;
+    this.min = min;
+    this.max = max;
+    this.step = step;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 final static float s8 = 1.0/(float)0xff;
 final static float s16 = 1.0/(float)0xffff;
