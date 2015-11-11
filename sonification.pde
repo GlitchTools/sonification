@@ -1,7 +1,11 @@
+
+
 // Sonification, image as sound
+
 // Reimplementation of image -> raw -> wav -> audacity filters -> wav -> raw -> image process
 // Tomasz Sulej, generateme.blog@gmail.com, http://generateme.tumblr.com
 // Bob Verkouteren, bob.verkouteren@gmail.com, http://applesandchickens.com 
+// Modified for web by Thijs
 // Licence: http://unlicense.org/
 
 // Usage:
@@ -10,13 +14,13 @@
 //   * f to randomize filters
 //   * r to randomize raw settings
 //   * b to batch process files from folder, set folder and filename below
-
 // set up filename
+/* @pjs preload="test.jpg"; */
 String filename = "test";
 String fileext = ".jpg";
-String foldername = "./"; // it is used also for batch processing
+String foldername = ""; // it is used also for batch processing
 
-int max_display_size = 600; // viewing window size (regardless image size)
+int max_display_size = 1600; // viewing window size (regardless image size)
 
 boolean do_blend = false; // blend image after process
 int blend_mode = OVERLAY; // blend type
@@ -38,13 +42,14 @@ int w_sign = UNSIGNED; // SIGNED or UNSIGNED
 int w_bits = B8; // B8, B16 or B24, bits per sample
 int w_endianess = LITTLE_ENDIAN; // BIG_ENDIAN or LITTLE_ENDIAN
 int w_colorspace = RGB; // list below
+final static int[] blends = {ADD, SUBTRACT, DARKEST, LIGHTEST, DIFFERENCE, EXCLUSION, MULTIPLY, SCREEN, OVERLAY, HARD_LIGHT, SOFT_LIGHT, DODGE, BURN};
 
 // put list of the filters { name, sample rate }
 float[][] filters = {
 //  {DJEQ, 44100},
 //  {COMB, 44100},
 //  {VYNIL, 44100},
-//  {CANYONDELAY, 44100}, 
+  {CANYONDELAY, 44100}, 
 //  {VCF303 , 44100},
 //  {ECHO, 44100},
 //  {PHASER, 44100},
@@ -57,7 +62,7 @@ float[][] filters = {
 //  {DIVIDER, 44100},
 //  {LFOPHASER, 44100},
 //  {FOURBYFOURPOLE, 44100},
-  {AUTOPHASER, 44100},
+//  {AUTOPHASER, 44100},
 //  {AUAMPLIFY, 44100},
 //  {TREVERB, 44100},
 //  {VACUUMTAMP, 44100},
@@ -67,7 +72,7 @@ float[][] filters = {
 };
 
 // add here filters you don't want to see in random mode ('f')
-int[] excluded_filters = { ZAMTUBE };
+// int[] excluded_filters = { ZAMTUBE };
 
 // this function is called before each file processing in batch mode
 // adjust your parameters here
@@ -159,10 +164,13 @@ RawReader isr; // image reader
 RawWriter isw; // image writer
 ArrayList<AFilter> filterchain = new ArrayList<AFilter>();
 
-void setup() {
+
+
+void setup() { 
+
   sessionid = hex((int)random(0xffff),4);
   img = loadImage(foldername+filename+fileext);
-  
+ 
   buffer = createGraphics(img.width, img.height);
   buffer.beginDraw();
   buffer.noStroke();
@@ -170,7 +178,7 @@ void setup() {
   buffer.background(0);
   buffer.image(img,0,0);
   buffer.endDraw();
-  
+
   // calculate window size
   float ratio = (float)img.width/(float)img.height;
   int neww, newh;
@@ -180,301 +188,41 @@ void setup() {
   } else {
     neww = max_display_size;
     newh = (int)(max_display_size / ratio);
-  }
+  } 
 
   size(neww,newh);
-  init_helper();
+  background(0);
+
+//init_helper();
 
   isr = new RawReader(img.get(), r_rawtype, r_law, r_sign, r_bits, r_endianess);
   isr.r.convertColorspace(r_colorspace);
   isw = new RawWriter(img.get(), w_rawtype, w_law, w_sign, w_bits, w_endianess);
 
-  prepareFilters(filters);
+  //prepareFilters(filters);
+  afilter = new CanyonDelay(isr, 44100.0);
+  afilter.initialize();
+
+  noLoop();
+  //printConfig();
+
+  //processImage()
+}
+void draw() { 
   
-//  color tt = color(22,122,222);
-//  color _luv = toLUV(tt);
-//  println( getR(_luv) + "," + getG(_luv) + "," + getB(_luv));
-//  _luv = fromLUV(_luv);
-//  println( getR(_luv) + "," + getG(_luv) + "," + getB(_luv));
-  
-//  float in = -1;
-//  float out = in;
-//  float _prev=0.5;
-//  for(int i=0;i<1;i++) {
-//    out = sqrt((out + _prev) / ( in * 1 ) );
-//  }
-//  println(out);
-  printConfig();
-  processImage();
-}
-
-void refreshImage() {
-  isr = new RawReader(img.get(), r_rawtype, r_law, r_sign, r_bits, r_endianess);
-  isr.r.convertColorspace(r_colorspace);
-  isw = new RawWriter(img.get(), w_rawtype, w_law, w_sign, w_bits, w_endianess);
-  reinitFilters();
-}
-
-void prepareFilters(float[][] f) {
-  filterchain.clear();
-  Piper p = isr;
-  for(int i = 0; i<f.length;i++) {
-    afilter = createFilter((int)f[i][0],p,f[i][1]);
-    p = afilter;
-    filterchain.add(afilter);
-  }
-}
-
-void reinitFilters() {
-  Piper p = isr;
-  for(AFilter f: filterchain) {
-    f.reader = p;
-    f.initialize();
-    p = f;
-  }
-}
-
-void randomizeConfig() {
-  make_equalize = random(1)<0.9;
-  for(AFilter f : filterchain) f.randomize();
-  resetStreams();
-}
-
-boolean checkExclusion(int filter) {
-  boolean res = false;
-  for(int i : excluded_filters) {
-    if(i==filter) return true;
-  }
-  return res;
-}
-
-void randomizeFilters() {
-  int filterno = (int)random(1,4); // 1, 2 or 3 filters in chain
-  filters = new float[filterno][2];
-  int i=0;
-  while(i<filterno) {
-    filters[i][0] = (int)random(MAX_FILTERS);
-    if(checkExclusion((int)filters[i][0])) continue; 
-    filters[i][1] = random(1)<0.5?44100.0:random(1)<0.334?22050:random(1)<0.5?100000:random(3000,120000);
-    i++;
-  }
-  prepareFilters(filters);
-  resetStreams();  
-}
-
-void randomizeRaw() {
-  boolean keepsame = random(1)<0.5;
-  w_rawtype = r_rawtype = random(1)<0.5?INTERLEAVED:PLANAR;
-  w_law = r_law = random(1)<0.334?NONE:random(1)<0.5?A_LAW:U_LAW;
-  w_sign = r_sign = random(1)<0.5?SIGNED:UNSIGNED;
-  w_bits = r_bits = random(1)<0.334?B8:random(1)<0.5?B16:B24;
-  w_endianess = r_endianess = random(1)<0.5?BIG_ENDIAN:LITTLE_ENDIAN;
-  w_colorspace = r_colorspace = (int)(1000+random(MAX_COLORSPACES+1));
-  isr = new RawReader(img.get(), r_rawtype, r_law, r_sign, r_bits, r_endianess);
-  isr.r.convertColorspace(r_colorspace);
-  if(!keepsame) {
-    w_rawtype = random(1)<0.5 ? (random(1)<0.5?INTERLEAVED:PLANAR) : r_rawtype;
-    w_law = random(1)<0.334?NONE:random(1)<0.5?A_LAW:U_LAW;
-    w_sign = random(1)<0.5?SIGNED:UNSIGNED;
-    w_bits = random(1)<0.2 ? (random(1)<0.334?B8:random(1)<0.5?B16:B24) : r_bits;
-    w_endianess = random(1)<0.5?BIG_ENDIAN:LITTLE_ENDIAN;
-    w_colorspace = (int)(1000+random(MAX_COLORSPACES+1));
-  }
-  isw = new RawWriter(img.get(), w_rawtype, w_law, w_sign, w_bits, w_endianess);
-  reinitFilters();
-  resetStreams();
-}
-
-String bString(boolean v) { return v?"true":"false";}
-void printConfig() {
-  println("");
-  println("*****************");
-  println("General settings:");
-  println("  * equalize and normalize histogram: " + bString(make_equalize));
-  println("Read image as RAW/WAV:");
-  println("  * RAW type: " + getFormatName(r_rawtype));
-  println("  * Number format: " + r_bits + " bits, " + getSignName(r_sign));
-  println("  * Endianess: " + getEndianName(r_endianess));
-  println("  * LAW filtering: " + getLawName(r_law));
-  println("  * colorspace: " + getCSName(r_colorspace));
-  
-  println("Write image as RAW/WAV:");
-  println("  * RAW type: " + getFormatName(w_rawtype));
-  println("  * Number format: " + w_bits + " bits, " + getSignName(w_sign));
-  println("  * Endianess: " + getEndianName(w_endianess));
-  println("  * LAW filtering: " + getLawName(w_law));
-  println("  * colorspace: " + getCSName(w_colorspace));
-  
-  println("Filters used:");
-  for(AFilter f: filterchain) {
-    println("  * " + f.getClass().getName() + ", sample rate: "+f.srate);
-  }
-  
-  println("Filters config:");
-  for(AFilter f: filterchain) {
-    println("--Config for "+ f.getClass().getName() + ":");
-    println(f.toString());
-  }
-}
-
-void draw() {
-  // fill for iterative processing
-  if(doBatch) {
-    batchStep();
-  }
-}
-
-void processImage() {
-  buffer.beginDraw();
-  
-  int cnt = img.pixels.length*3;
-  // process every byte
-  println("");
-  println("*** PROCESSING ***");
-  int currstar = 0;
-  while(!isr.r.taken) {
-    isw.write(afilter.read());
-    int no = (int)round(map(isr.r.takencnt,0,cnt,1,18));
-    if(no>currstar) {
-      currstar = no;
-      print("*");
-    }
-  }
-  println("");
-  
-  // change result colorspace
-  isw.w.convertColorspace(w_colorspace);
-  // equalize and normalize histogram
-  if(make_equalize)
-    equalize(isw.w.wimg.pixels);
-    
-  isw.w.wimg.updatePixels();
-
-  buffer.image(isw.w.wimg, 0, 0);
-
-  if(do_blend)
-    buffer.blend(img,0,0,img.width,img.height,0,0,buffer.width,buffer.height,blend_mode);
-    
-  buffer.endDraw();
-  image(buffer,0,0,width,height);
-}
-
-void resetStreams() {
-  isr.reset();
-  isw.reset();
-}
-
-void mouseClicked() {
-  randomizeConfig();
-  printConfig();
-  processImage();
-}
-
-void keyPressed() {
-  // SPACE to save
-  if(keyCode == 32) {
-    String fn = foldername + filename + "/res_" + sessionid + hex((int)random(0xffff),4)+"_"+filename+fileext;
-    buffer.save(fn);
-    println("Image "+ fn + " saved");
-  }
-  if(key == 'r') {
-    randomizeRaw();
-    printConfig();
-    processImage();
-  }
-  if(key == 'f') {
-    randomizeFilters();
-    printConfig();
-    processImage();
-  }
-  if(key == 'c') {
-    mouseClicked();
-  }
-  if(key == 'b' && !doBatch) {
-    batchProcess();
-  }
-}
-
-void batchStep() {
-  File n = batchList[batchIdx];
-    String name = n.getAbsolutePath(); 
-    if(name.endsWith(fileext)) {
-      print(n.getName()+"... ");
-      img = loadImage(name);
-      refreshImage();
-      batchCallback((float)batchIdx / batchFiles);
-      processImage();
-      buffer.save(foldername+batchUID+"/"+n.getName());
-      println("saved");
-    }
-    batchIdx++;
-    if(batchIdx >= batchList.length) {
-      doBatch = false;
-      println("results saved in "+ foldername+batchUID + " folder");
-    }
-}
-
-File[] batchList;
-int batchIdx = 0;
-String batchUID;
-boolean doBatch = false;
-float batchFiles = 0;
-void batchProcess() {
-  batchUID = sessionid + hex((int)random(0xffff),4);
-  File dir = new File(sketchPath+'/'+foldername);
-  batchList = dir.listFiles();
-  batchIdx = 0;
-  batchFiles = 0;
-  for(File n : batchList) {
-    if(n.getName().endsWith(fileext)) batchFiles=batchFiles+1.0;
-  }
-  println("Processing "+int(batchFiles)+" images from folder: " + foldername);
-  doBatch = true;
-}
-
-//
-
-final static int[] blends = {ADD, SUBTRACT, DARKEST, LIGHTEST, DIFFERENCE, EXCLUSION, MULTIPLY, SCREEN, OVERLAY, HARD_LIGHT, SOFT_LIGHT, DODGE, BURN};
-
-// ANIMATION
-//
-//float p1 = random(TWO_PI);
-//float p2 = random(TWO_PI);
-//float p3 = random(TWO_PI);
-//float p4 = random(TWO_PI);
-//float p5 = random(TWO_PI);
-//float ang = 0;
-
-//void draw() {
-  /* 
-   background(0);
-   vcf303.env_mod = sin(ang+p1);
-   vcf303.cutoff = sin(ang+p2);
-   vcf303.resonance = sin(ang+p3);
-   vcf303.decay = sin(ang+p4)+0.5;
-   vcf303.initialize();
-   
-   cdelay.ltr_time = map( sin(ang+p1),-1,1,0.1,0.6);
-   cdelay.rtl_time = map( sin(ang+p2),-1,1,0.1,0.5);
-   cdelay.ltr_feedback = sin(ang+p3);
-   cdelay.rtl_feedback = sin(ang+p4);
-   cdelay.cutoff = map(sin(ang+p5),-1,1,100,10000);
-   cdelay.initialize();
-   
+  // afilter.randomize();
    for(int i=0; i<img.width*img.height*3;i++) {
    isw.write(afilter.read());
    }
    
-   equalize(isw.w.wimg.pixels);
-   isw.w.wimg.updatePixels();
+//   equalize(isw.w.wimg.pixels);
+//   isw.w.wimg.updatePixels();
    
    image(isw.w.wimg,0,0);
    
    isr.reset();
    isw.reset();
-   ang+=TWO_PI/60.0;
-   if(ang<TWO_PI) {
-   //  saveFrame("goham/frames_"+(100+frameCount)+".jpg");
-   }
-   */
-//}
+}
+
+
+

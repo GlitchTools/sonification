@@ -1,6 +1,3 @@
-// image->raw->audio and audio->raw->image functions
-// helper function to pipe filters
-
 public interface Piper {
   public float read();
 }
@@ -162,6 +159,7 @@ class RawWriter {
   }
 }
 
+
 static final float A = 87.6;
 static final float rA = 1.0/A;
 static final float lnA = 1.0+log(A);
@@ -203,6 +201,8 @@ float revulaw(float x) {
   float sgnx = x < 0 ? -1.0 : 1.0;
   return sgnx * rU * (pow(U1, abs(x))-1.0);
 }
+
+
 
 public class ImageStreamReader {
   public PImage rimg;
@@ -332,3 +332,43 @@ public class ImageStreamWriter {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+// # of colorspaces
+final static int MAX_COLORSPACES = 7;
+
+// colorspace converters
+color fromColorspace(color c, int cs) {
+  switch(cs) {
+    case OHTA: return fromOHTA(c);
+    case CMY: return fromCMY(c); 
+    case XYZ: return fromXYZ(c);
+    case YXY: return fromYXY(c);
+    case HCL: return fromHCL(c);
+    case LUV: return fromLUV(c);
+    case LAB: return fromLAB(c);
+    default: return c;     
+  }
+}
+
+color toColorspace(color c, int cs) {
+  switch(cs) {
+    case OHTA: return toOHTA(c); 
+    case CMY: return toCMY(c);
+    case XYZ: return toXYZ(c);
+    case YXY: return toYXY(c);
+    case HCL: return toHCL(c);
+    case LUV: return toLUV(c);
+    case LAB: return toLAB(c);
+    default: return c;     
+  }
+}
+
+
