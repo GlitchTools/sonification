@@ -20,7 +20,7 @@ String filename = "test";
 String fileext = ".jpg";
 String foldername = ""; // it is used also for batch processing
 
-int max_display_size = 1600; // viewing window size (regardless image size)
+int max_display_size = 1024; // viewing window size (regardless image size)
 
 boolean do_blend = false; // blend image after process
 int blend_mode = OVERLAY; // blend type

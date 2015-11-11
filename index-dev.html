@@ -4,8 +4,12 @@
   <meta charset="utf-8"/>
   <title>htglitch, running sonification AE2Z1b8</title>
   <style>
-   html,body,canvas{margin:0;padding:0;height:100%;width:100%;position:relative;}
-   body{background:black;}
+   html,body{margin:0;padding:0;height:100%;width:100%;position:relative;}
+   *{ cursor: inherit;}
+   body{
+	background:black;
+	font-family: verdana,helvetica,sans;
+   }
    .controller { 
 	min-width: 200px;
 	max-width: 250px;
@@ -16,6 +20,11 @@
 	position: absolute;
 	top: 20px;
 	right: 20px;
+	padding: 4px;
+	border-top: solid 1px white;
+	border-left: solid 1px white;
+	border-right: solid 1px darkgrey;
+	border-bottom: solid 1px darkgrey;
 	
   }
   </style>
@@ -23,7 +32,7 @@
   <script src="controls.js"></script>
   </head>
  <body>
-  <canvas id="sketch" data-processing-sources="sonification.pde common.pde colorspaces.pde afilters.pde" width=1600 height=1600></canvas>
+  <canvas id="sketch" data-processing-sources="sonification.pde common.pde colorspaces.pde afilters.pde" width="1024px" height="768px"></canvas>
 
   <script>
 var controlbox = {};
@@ -71,6 +80,13 @@ function genCtrl(params) {
 		inp.setAttribute('max',param.max);
 		inp.setAttribute('step',param.step);
 		inp.setAttribute('value',param.def);
+		inp.onchange = function(e) { 
+			this.title = this.value;
+			document.title = 'working...';
+			applyEffect();
+			redraw();
+			document.title = 'sonify';
+		};
 		inp.style.display = 'block';
 		row.appendChild(inp);
 		result.appendChild(row);
@@ -80,9 +96,9 @@ function genCtrl(params) {
 
   </script>
    <div class=controller>
-   <input type=button onclick="loadEffect(document.getElementById('toggles'))" value="load"/>
-   <input type=button onclick="applyEffect()" value="apply" />
-   <input type=button onclick="redraw()" value="redraw" />
+   <input type=button onclick="loadEffect(document.getElementById('toggles'))" value="ctrl"/>
+   <!--input type=button onclick="applyEffect()" value="apply" />
+   <input type=button onclick="redraw()" value="redraw" /-->
 	<div id=toggles></div>
    </div><!--/controller-->
  </body>
