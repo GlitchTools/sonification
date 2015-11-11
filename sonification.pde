@@ -210,7 +210,7 @@ void setup() {
 }
 void draw() { 
   
-  // afilter.randomize();
+   afilter.randomize();
    for(int i=0; i<img.width*img.height*3;i++) {
    isw.write(afilter.read());
    }
